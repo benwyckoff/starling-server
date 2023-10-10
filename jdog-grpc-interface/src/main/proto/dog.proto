@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package com.dragontreesoftware.jdog;
+
+option java_multiple_files = true;
+option java_package = "com.dragontreesoftware.jdog";
+option java_outer_classname = "DogProto";
+
+// The Dynamic Object Generation service definition.
+service JDogService {
+  rpc generate (DogRequest) returns (DogReply) {
+  }
+}
+
+// The request containing a desired mediaType response, and options defining what response is generated
+message DogRequest {
+  optional string mediaType = 1;
+  map<string,string> options = 2;
+}
+
+// The response message containing a media type and either a
+message DogReply {
+  string mediaType = 1;
+  oneof body {
+    string text = 2;
+    bytes binary = 3;
+  }
+}
