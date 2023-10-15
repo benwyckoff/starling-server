@@ -1,8 +1,9 @@
-package com.dragontreesoftware.odyssey.service;
+package com.dragontreesoftware.odyssey.core;
 
 import com.netflix.hollow.api.consumer.HollowConsumer;
 import com.netflix.hollow.api.consumer.fs.HollowFilesystemAnnouncementWatcher;
 import com.netflix.hollow.api.consumer.fs.HollowFilesystemBlobRetriever;
+import com.netflix.hollow.api.metrics.HollowConsumerMetrics;
 import com.netflix.hollow.api.objects.HollowRecord;
 import com.netflix.hollow.api.objects.generic.GenericHollowObject;
 import com.netflix.hollow.core.index.HollowPrimaryKeyIndex;
@@ -19,16 +20,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class HollowReader<T> {
+public class HollowReader<T> implements ReferencedObject {
 
+    private final ReferenceTracker referenceTracker = new ReferenceTracker();
     private final Path hollowPath;
 
     // allow configuration
     private final HollowRecordJsonStringifier stringifier = new HollowRecordJsonStringifier(true, false);
 
-    private final HollowFilesystemBlobRetriever blobRetriever;
-    private final HollowFilesystemAnnouncementWatcher announcementWatcher;
-    private final HollowConsumer consumer;
+    private HollowFilesystemBlobRetriever blobRetriever;
+    private HollowFilesystemAnnouncementWatcher announcementWatcher;
+    private HollowConsumer consumer;
     private PrimaryKey primaryKey;
     private HollowObjectSchema primarySchema;
 
@@ -62,21 +64,21 @@ public class HollowReader<T> {
         return null;
     }
 
-    private HollowReader(HollowReader untyped) {
-        this.hollowPath = untyped.hollowPath;
-        this.primaryKey = untyped.primaryKey;
-        this.primaryKeyIndex = untyped.primaryKeyIndex;
-        this.primarySchema = untyped.primarySchema;
-        this.blobRetriever = untyped.blobRetriever;
-        this.announcementWatcher = untyped.announcementWatcher;
-        this.consumer = untyped.consumer;
-        this.keyType = untyped.keyType;
-        this.primaryType = untyped.primaryType;
-        this.converter = untyped.converter;
+    public void close() {
+        // TODO figure out if this actually frees up resources. I don't see "close" methods on these things
+        if(blobRetriever == null) {
+            return;
+        }
+        blobRetriever = null;
+        announcementWatcher = null;
+        consumer = null;
     }
 
-    private HollowReader(Path hollowPath) {
-        this.hollowPath = hollowPath;
+    public void open() {
+        touch();
+        if(blobRetriever != null) {
+            return;
+        }
         blobRetriever =
                 new HollowFilesystemBlobRetriever(hollowPath);
         announcementWatcher =
@@ -99,7 +101,44 @@ public class HollowReader<T> {
 
         getRecognizedHollowPrimaryKeyType(); // for side effect
         //consumer.getStateEngine().getSchemas().stream().forEach(System.out::println);
+        touch();
     }
+
+    public HollowConsumerMetrics getMetrics() {
+        open();
+        if(consumer != null) {
+            return consumer.getMetrics();
+        }
+        return null;
+    }
+
+    public List<HollowSchema> getSchemas() {
+        open();
+        if(consumer != null) {
+            return consumer.getStateEngine().getSchemas();
+        }
+        return null;
+    }
+
+    private HollowReader(HollowReader untyped) {
+        this.hollowPath = untyped.hollowPath;
+        this.primaryKey = untyped.primaryKey;
+        this.primaryKeyIndex = untyped.primaryKeyIndex;
+        this.primarySchema = untyped.primarySchema;
+        this.blobRetriever = untyped.blobRetriever;
+        this.announcementWatcher = untyped.announcementWatcher;
+        this.consumer = untyped.consumer;
+        this.keyType = untyped.keyType;
+        this.primaryType = untyped.primaryType;
+        this.converter = untyped.converter;
+    }
+
+    private HollowReader(Path hollowPath) {
+        this.hollowPath = hollowPath;
+        open();
+    }
+
+
 
     public HollowReader<T> withConverter(Function<String,T> converter) {
         this.converter = converter;
@@ -107,6 +146,10 @@ public class HollowReader<T> {
     }
 
     public String getKeyType() {
+        if(keyType == null) {
+            open();
+        }
+        touch();
         return keyType;
     }
 
@@ -115,6 +158,10 @@ public class HollowReader<T> {
     }
 
     public Class getRecognizedHollowPrimaryKeyType() {
+        touch();
+        if(primaryKey == null) {
+            open();
+        }
         if(primaryKey != null) {
             HollowObjectSchema.FieldType fieldType = primaryKey.getFieldType(consumer.getStateEngine(), primaryKey.getFieldPaths().length-1);
 
@@ -136,6 +183,15 @@ public class HollowReader<T> {
     }
 
     public List<String> getPrimaryKeys() {
+        return getPrimaryKeys(0, Integer.MAX_VALUE);
+    }
+
+    public List<String> getPrimaryKeys(int from, int numKeys) {
+        touch();
+
+        if(primaryType == null) {
+            open();
+        }
 
         List<String> keys = new LinkedList<>();
 
@@ -145,7 +201,8 @@ public class HollowReader<T> {
                 Integer count = typedOrdinals.get(primaryType);
                 if (count != null) {
                     StringBuilder b = new StringBuilder();
-                    for (int o = 0; o < count; o++) {
+                    int maxKey = Math.min(count, from + numKeys);
+                    for (int o = from; o < maxKey; o++) {
                         Object[] key = primaryKeyIndex.getRecordKey(o);
                         b.setLength(0);
                         for (Object k : key) {
@@ -168,6 +225,10 @@ public class HollowReader<T> {
     }
 
     public HollowRecord getRecord(T id) {
+        touch();
+        if(primaryKeyIndex == null) {
+            open();
+        }
         if (primaryKeyIndex != null) {
             int ordinal = primaryKeyIndex.getMatchingOrdinal(id);
             if(ordinal >= 0) {
@@ -191,6 +252,10 @@ public class HollowReader<T> {
     }
 
     public HollowRecord getRecordFromOrdinal(int ordinal) {
+        touch();
+        if(primaryKeyIndex == null) {
+            open();
+        }
         if (primaryKeyIndex != null && ordinal >= 0) {
             GenericHollowObject kit = new GenericHollowObject(consumer.getStateEngine(), primaryType, ordinal);
             return kit;
@@ -208,6 +273,35 @@ public class HollowReader<T> {
 
 
     public String getPrimaryType() {
+        touch();
+        if(primaryType == null) {
+            open();
+        }
         return primaryType;
+    }
+
+    @Override
+    public void touch() {
+        referenceTracker.touch();
+    }
+
+    @Override
+    public long getReferenceCount() {
+        return referenceTracker.getReferenceCount();
+    }
+
+    @Override
+    public long getLastReferenceTimestamp() {
+        return referenceTracker.getLastReferenceTimestamp();
+    }
+
+    @Override
+    public long idleTime(long now) {
+        return referenceTracker.idleTime(now);
+    }
+
+    @Override
+    public long idle() {
+        return referenceTracker.idle();
     }
 }

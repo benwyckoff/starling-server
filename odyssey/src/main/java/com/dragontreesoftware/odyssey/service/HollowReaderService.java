@@ -1,96 +1,67 @@
 package com.dragontreesoftware.odyssey.service;
 
+import com.dragontreesoftware.odyssey.core.HollowReader;
+import com.dragontreesoftware.odyssey.core.HollowReaders;
+import com.netflix.hollow.api.metrics.HollowConsumerMetrics;
+import com.netflix.hollow.core.schema.HollowSchema;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class HollowReaderService {
 
-    private final Map<String, HollowReader<? extends Object>> hollowReaders = new ConcurrentHashMap<>();
+    private final HollowReaders hollowReaders;
+
+    @Value("${HollowReaderService.readerTtlSeconds:600}")
+    private String readerTtlSeconds;
 
     public HollowReaderService() {
-        getHollowPaths().forEach(this::loadReader);
+        hollowReaders = new HollowReaders(HollowReaders.getDefaultHollowPaths());
+    }
+
+    @PostConstruct
+    void postConstruct() {
+        hollowReaders.setIdleTime(Integer.parseInt(readerTtlSeconds), TimeUnit.SECONDS);
     }
 
     public List<String> getTypes() {
-        return hollowReaders.keySet().stream().toList();
+        return hollowReaders.getTypes();
     }
 
     public List<String> getTypedKeys(String type) {
-        HollowReader<? extends Object> reader = hollowReaders.get(type);
-        if(reader == null) {
-            return Collections.emptyList();
+        return hollowReaders.getTypedKeys(type);
+    }
+
+    public List<String> getTypedKeys(String type, int from, int numKeys) {
+        return hollowReaders.getTypedKeys(type, from, numKeys);
+    }
+
+    public Optional<HollowConsumerMetrics> getMetrics(String type) {
+        HollowReader reader = hollowReaders.getHollowReader(type);
+        if(reader != null) {
+            return Optional.of(reader.getMetrics());
         }
-
-        return reader.getPrimaryKeys();
-    }
-    public String get(String id) {
-        return hollowReaders.values().stream().map(reader -> reader.getRecordAsJsonFromString(id)).findFirst().orElse(null);
+        return Optional.empty();
     }
 
-    public String getFromOrdinal(int id) {
-        return hollowReaders.values().stream().map(reader -> reader.getRecordAsJsonFromOrdinal(id)).findFirst().orElse(null);
+    public Optional<List<HollowSchema>> getSchemas(String type) {
+        HollowReader reader = hollowReaders.getHollowReader(type);
+        if(reader != null) {
+            return Optional.of(reader.getSchemas());
+        }
+        return Optional.empty();
     }
+
 
     public String get(String type, String id) {
-        HollowReader<? extends Object> reader = hollowReaders.get(type);
-        if(reader != null) {
-            return reader.getRecordAsJsonFromString(id);
-        }
-        return null;
+        return hollowReaders.get(type, id);
     }
 
     public String getFromOrdinal(String type, int id) {
-        HollowReader<? extends Object> reader = hollowReaders.get(type);
-        if(reader != null) {
-            return reader.getRecordAsJsonFromOrdinal(id);
-        }
-        return null;
+        return hollowReaders.getFromOrdinal(type, id);
     }
-
-    private static List<Path> getHollowPaths() {
-        List<Path> paths = new LinkedList<>();
-        String setting = System.getProperty("hollowPaths", System.getenv("HOLLOW_PATHS"));
-        if(setting == null) {
-            paths.add(Paths.get("/tmp/hollow/"));
-        } else {
-            String[] names = setting.split(",");
-            paths.addAll(Arrays.stream(names).map(String::strip).map(Paths::get).toList());
-        }
-
-        Set<Path> distinctPaths = new TreeSet<>(paths);
-
-        paths.forEach(p -> distinctPaths.addAll(listDirs(p)));
-
-        return new ArrayList<>(distinctPaths);
-    }
-
-    private static Set<Path> listDirs(Path dir) {
-        Set<Path> paths = new HashSet<>();
-        File file = dir.toFile();
-        if(file.exists() && file.isDirectory()) {
-            paths.add(dir);
-            for(File sub : Objects.requireNonNull(file.listFiles(f -> f.isDirectory()))) {
-                paths.addAll(listDirs(sub.toPath()));
-            }
-        }
-        return paths;
-    }
-
-    private void loadReader(Path p) {
-        try {
-            HollowReader<? extends Object> reader = HollowReader.load(p);
-            if (reader != null) {
-                hollowReaders.put(reader.getPrimaryType(), reader);
-            }
-        } catch(Throwable t) {
-            // log failure
-        }
-    }
-
 }
