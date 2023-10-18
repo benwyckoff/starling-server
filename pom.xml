@@ -18,8 +18,11 @@
 
   <modules>
     <module>jdog</module>
-    <module>odyssey</module>
+    <module>odyssey-core</module>
     <module>jdog-grpc-interface</module>
+    <module>odyssey-gcs</module>
+    <module>odyssey-server</module>
+    <module>odyssey-templates</module>
   </modules>
 
   <properties>
@@ -30,6 +33,7 @@
     <micrometer.version>1.8.1</micrometer.version>
     <apache.commons.math3.version>3.6.1</apache.commons.math3.version>
     <HdrHistogram.version>2.1.4</HdrHistogram.version>
+    <hollow.version>7.6.6</hollow.version>
   </properties>
 
   <dependencies>
@@ -51,6 +55,13 @@
       <version>${HdrHistogram.version}</version>
     </dependency>
 
+    <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.10.0</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <pluginManagement>
