@@ -32,7 +32,7 @@ public class IntegerTransformGenerator {
         producer.initializeDataModel(Transforms.class);
 
         List<Transforms> toys = buildTransformCollection();
-        producer.runCycle(state -> toys.forEach(t -> state.add(t)));
+        producer.runCycle(state -> toys.forEach(state::add));
 
     }
 

@@ -31,7 +31,7 @@ public class ToyCatalogGenerator {
         producer.initializeDataModel(Toy.class);
 
         List<Toy> toys = buildToyCollection();
-        producer.runCycle(state -> toys.forEach(t -> state.add(t)));
+        producer.runCycle(state -> toys.forEach(state::add));
     }
 
 
