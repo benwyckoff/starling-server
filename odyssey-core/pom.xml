@@ -7,7 +7,6 @@
 		<groupId>com.dragontreesoftware</groupId>
 		<artifactId>starling-server</artifactId>
 		<version>1.0.0-SNAPSHOT</version>
-		<relativePath/>
 	</parent>
 
 
