@@ -144,7 +144,7 @@
 
   <scm>
     <developerConnection>
-      scm:git:git@github.com:benwyckoff/starling-server.git
+      scm:git:https://github.com/benwyckoff/starling-server.git
     </developerConnection>
     <tag>starling-server-1.0.0</tag>
   </scm>
