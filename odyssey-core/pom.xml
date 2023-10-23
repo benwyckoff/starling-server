@@ -5,12 +5,12 @@
 	<parent>
 		<groupId>com.dragontreesoftware</groupId>
 		<artifactId>starling-server</artifactId>
-		<version>1.0.5</version>
+		<version>1.0.6-SNAPSHOT</version>
 	</parent>
 
 
 	<artifactId>odyssey-core</artifactId>
-	<version>1.0.5</version>
+	<version>1.0.6-SNAPSHOT</version>
 	<name>odyssey-core</name>
 	<description>components supporting serving hollow data source</description>
 
