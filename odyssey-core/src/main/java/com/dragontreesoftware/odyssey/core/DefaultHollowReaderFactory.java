@@ -8,4 +8,9 @@ public class DefaultHollowReaderFactory implements HollowReaderFactory {
     public HollowReader<? extends Object> load(Path p) {
         return HollowReader.load(p);
     }
+
+    @Override
+    public String getName() {
+        return "DefaultHollowReaderFactory";
+    }
 }

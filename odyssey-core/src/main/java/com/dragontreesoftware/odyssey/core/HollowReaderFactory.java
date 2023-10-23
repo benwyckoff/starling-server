@@ -6,4 +6,6 @@ public interface HollowReaderFactory {
 
     HollowReader<? extends Object> load(Path p);
 
+    String getName();
+
 }

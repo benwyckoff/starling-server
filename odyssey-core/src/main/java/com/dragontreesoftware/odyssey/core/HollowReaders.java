@@ -16,7 +16,7 @@ public class HollowReaders {
 
     private ScheduledExecutorService scheduler;
 
-    private HollowReaderFactory hollowReaderFactory = new DefaultHollowReaderFactory();
+    private final HollowReaderFactoryCollection hollowReaderFactory = new HollowReaderFactoryCollection();
     private IdleHollowReaderListener idleListener;
 
     public HollowReaders() {
@@ -28,15 +28,13 @@ public class HollowReaders {
         paths.forEach(this::loadReader);
     }
 
-    // TODO look at methods for re-loading/updating paths
-
-
-    public HollowReaderFactory getHollowReaderFactory() {
+    public HollowReaderFactoryCollection getHollowReaderFactory() {
         return hollowReaderFactory;
     }
 
-    public void setHollowReaderFactory(HollowReaderFactory hollowReaderFactory) {
-        this.hollowReaderFactory = hollowReaderFactory;
+    public HollowReaders withHollowReaderFactory(HollowReaderFactory hollowReaderFactory) {
+        this.hollowReaderFactory.withFactory(hollowReaderFactory);
+        return this;
     }
 
     public void setIdleTime(long time, TimeUnit units) {

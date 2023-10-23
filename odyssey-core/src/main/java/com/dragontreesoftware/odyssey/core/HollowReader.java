@@ -11,10 +11,7 @@ import com.netflix.hollow.core.schema.HollowSchema;
 import com.netflix.hollow.tools.stringifier.HollowRecordJsonStringifier;
 
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 
 public class HollowReader<T> implements ReferencedObject {
@@ -26,6 +23,7 @@ public class HollowReader<T> implements ReferencedObject {
     private final HollowRecordJsonStringifier stringifier = new HollowRecordJsonStringifier(true, false);
 
     private final HollowStorageFactory storageFactory;
+    private final HollowReaderKey hollowReaderKey;
     private HollowConsumer.BlobRetriever blobRetriever;
     private HollowConsumer.AnnouncementWatcher announcementWatcher;
     private HollowConsumer consumer;
@@ -132,12 +130,14 @@ public class HollowReader<T> implements ReferencedObject {
         this.keyType = untyped.keyType;
         this.primaryType = untyped.primaryType;
         this.converter = untyped.converter;
+        this.hollowReaderKey = untyped.hollowReaderKey;
     }
 
     private HollowReader(Path hollowPath, HollowStorageFactory factory) {
         this.hollowPath = hollowPath;
         this.storageFactory = factory;
         open();
+        this.hollowReaderKey = new HollowReaderKey(this.hollowPath.toString(), this.primaryType);
     }
 
     public HollowReader<T> withConverter(Function<String,T> converter) {
@@ -193,17 +193,19 @@ public class HollowReader<T> implements ReferencedObject {
             open();
         }
 
-        List<String> keys = new LinkedList<>();
+        List<String> keys = new ArrayList<>();
 
         if(primaryType != null) {
             HashMap<String, Integer> typedOrdinals = consumer.getMetrics().getTypePopulatedOrdinals();
             if (typedOrdinals != null) {
                 Integer count = typedOrdinals.get(primaryType);
                 if (count != null) {
+                    BitSet populatedOrdinals = consumer.getStateEngine().getTypeState(primaryType).getPopulatedOrdinals();
                     StringBuilder b = new StringBuilder();
                     int maxKey = Math.min(count, from + numKeys);
-                    for (int o = from; o < maxKey; o++) {
-                        Object[] key = primaryKeyIndex.getRecordKey(o);
+                    for (int index = from; keys.size() < numKeys && index >= 0;
+                         index = populatedOrdinals.nextSetBit(index+1)) {
+                        Object[] key = primaryKeyIndex.getRecordKey(index);
                         b.setLength(0);
                         for (Object k : key) {
                             b.append(k.toString());

@@ -19,4 +19,9 @@ public class OdysseyGcsHollowReaderFactory implements HollowReaderFactory {
     public HollowReader<? extends Object> load(Path p) {
         return HollowReader.load(odysseyGcsStorage.absolutePath(p), hollowStorageFactory);
     }
+
+    @Override
+    public String getName() {
+        return odysseyGcsStorage.absolutePath(Path.of("/")).toString();
+    }
 }

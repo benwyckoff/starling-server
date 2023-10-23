@@ -28,8 +28,8 @@ public class HollowReaderService {
         OdysseyGcsStorage storage = new OdysseyGcsStorage("starling-server-odyssey");
 
         hollowReaders = new HollowReaders();
-        hollowReaders.setHollowReaderFactory(new HollowReaderFactoryCollection().withFactory(new DefaultHollowReaderFactory())
-                .withFactory(new OdysseyGcsHollowReaderFactory(storage)));
+        hollowReaders.withHollowReaderFactory(new DefaultHollowReaderFactory())
+                .withHollowReaderFactory(new OdysseyGcsHollowReaderFactory(storage));
         hollowReaders.scan(HollowReaders.getDefaultHollowPaths(), true);
         hollowReaders.add(Paths.get("hollow","test", "kit", "snapshot-20231014175638001"));
     }
