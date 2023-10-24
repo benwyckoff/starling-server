@@ -4,11 +4,11 @@
 	<parent>
 		<groupId>com.dragontreesoftware</groupId>
 		<artifactId>starling-server</artifactId>
-		<version>1.0.7-SNAPSHOT</version>
+		<version>1.0.7</version>
 	</parent>
 
 	<artifactId>jdog</artifactId>
-	<version>1.0.7-SNAPSHOT</version>
+	<version>1.0.7</version>
 	<name>jdog</name>
 
 	<description>Java Dynamic Object Generator</description>
