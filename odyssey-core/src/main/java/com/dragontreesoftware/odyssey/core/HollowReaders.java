@@ -60,7 +60,7 @@ public class HollowReaders {
         hollowReaders.entrySet().forEach(e -> {
             HollowReader<?> reader = e.getValue();
             long idleMillis = reader.idleTime(now);
-            if (idleMillis > maxIdleMillis) {
+            if (idleMillis > maxIdleMillis && reader.isOpen()) {
                 reader.close();
                 closed.add(reader);
             }

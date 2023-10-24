@@ -36,6 +36,15 @@ public class DataSetGenerator {
             }
         });
 
+        // this step - prepareForNext and runCycle, produces a data set with a gap in ordinals
+        producer.getWriteEngine().prepareForNextCycle();
+
+        producer.runCycle(state -> {
+            for(int i = 100; i < 125; i += 3) {
+                state.add(buildTestKit(i));
+            }
+        });
+
     }
 
     //record Screw(String name, int size) { }

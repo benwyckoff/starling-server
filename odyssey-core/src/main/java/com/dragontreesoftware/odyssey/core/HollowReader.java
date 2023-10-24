@@ -65,9 +65,17 @@ public class HollowReader<T> implements ReferencedObject {
         return hollowPath;
     }
 
+    public boolean isClosed() {
+        return consumer == null;
+    }
+
+    public boolean isOpen() {
+        return consumer != null;
+    }
+
     public void close() {
         // TODO figure out if this actually frees up resources. I don't see "close" methods on these things
-        if(blobRetriever == null) {
+        if(isClosed()) {
             return;
         }
         blobRetriever = null;
@@ -77,7 +85,7 @@ public class HollowReader<T> implements ReferencedObject {
 
     public void open() {
         touch();
-        if(blobRetriever != null) {
+        if(isOpen()) {
             return;
         }
         blobRetriever = storageFactory.createRetriever(hollowPath);
@@ -109,7 +117,7 @@ public class HollowReader<T> implements ReferencedObject {
 
     public HollowConsumerMetrics getMetrics() {
         open();
-        if(consumer != null) {
+        if(isOpen()) {
             return consumer.getMetrics();
         }
         return null;
@@ -117,7 +125,7 @@ public class HollowReader<T> implements ReferencedObject {
 
     public List<HollowSchema> getSchemas() {
         open();
-        if(consumer != null) {
+        if(isOpen()) {
             return consumer.getStateEngine().getSchemas();
         }
         return null;
@@ -151,10 +159,10 @@ public class HollowReader<T> implements ReferencedObject {
     }
 
     public String getKeyType() {
-        if(keyType == null) {
+        touch();
+        if(isClosed()) {
             open();
         }
-        touch();
         return keyType;
     }
 
@@ -164,7 +172,7 @@ public class HollowReader<T> implements ReferencedObject {
 
     public Class getRecognizedHollowPrimaryKeyType() {
         touch();
-        if(primaryKey == null) {
+        if(isClosed()) {
             open();
         }
         if(primaryKey != null) {
@@ -193,8 +201,7 @@ public class HollowReader<T> implements ReferencedObject {
 
     public List<String> getPrimaryKeys(int from, int numKeys) {
         touch();
-
-        if(primaryType == null) {
+        if(isClosed()) {
             open();
         }
 
@@ -207,15 +214,14 @@ public class HollowReader<T> implements ReferencedObject {
                 if (count != null) {
                     BitSet populatedOrdinals = consumer.getStateEngine().getTypeState(primaryType).getPopulatedOrdinals();
                     StringBuilder b = new StringBuilder();
-                    for (int index = from; keys.size() < numKeys && index >= 0;
-                         index = populatedOrdinals.nextSetBit(index+1)) {
-                        Object[] key = primaryKeyIndex.getRecordKey(index);
+                    populatedOrdinals.stream().skip(from).limit(numKeys).forEach(pi -> {
+                        Object[] key = primaryKeyIndex.getRecordKey(pi);
                         b.setLength(0);
                         for (Object k : key) {
                             b.append(k.toString());
                         }
                         keys.add(b.toString());
-                    }
+                    });
                 }
             }
         }
@@ -232,7 +238,7 @@ public class HollowReader<T> implements ReferencedObject {
 
     public HollowRecord getRecord(T id) {
         touch();
-        if(primaryKeyIndex == null) {
+        if(isClosed()) {
             open();
         }
         if (primaryKeyIndex != null) {
@@ -258,7 +264,7 @@ public class HollowReader<T> implements ReferencedObject {
 
     public HollowRecord getRecordFromOrdinal(int ordinal) {
         touch();
-        if(primaryKeyIndex == null) {
+        if(isClosed()) {
             open();
         }
         if (primaryKeyIndex != null && ordinal >= 0) {
@@ -278,7 +284,7 @@ public class HollowReader<T> implements ReferencedObject {
 
     public String getPrimaryType() {
         touch();
-        if(primaryType == null) {
+        if(isClosed()) {
             open();
         }
         return primaryType;
