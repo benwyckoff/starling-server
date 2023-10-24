@@ -102,6 +102,11 @@ public class HollowReader<T> implements ReferencedObject {
         touch();
     }
 
+
+    public HollowReaderKey getHollowReaderKey() {
+        return hollowReaderKey;
+    }
+
     public HollowConsumerMetrics getMetrics() {
         open();
         if(consumer != null) {
@@ -202,7 +207,6 @@ public class HollowReader<T> implements ReferencedObject {
                 if (count != null) {
                     BitSet populatedOrdinals = consumer.getStateEngine().getTypeState(primaryType).getPopulatedOrdinals();
                     StringBuilder b = new StringBuilder();
-                    int maxKey = Math.min(count, from + numKeys);
                     for (int index = from; keys.size() < numKeys && index >= 0;
                          index = populatedOrdinals.nextSetBit(index+1)) {
                         Object[] key = primaryKeyIndex.getRecordKey(index);
@@ -234,8 +238,7 @@ public class HollowReader<T> implements ReferencedObject {
         if (primaryKeyIndex != null) {
             int ordinal = primaryKeyIndex.getMatchingOrdinal(id);
             if(ordinal >= 0) {
-                GenericHollowObject kit = new GenericHollowObject(consumer.getStateEngine(), primaryType, ordinal);
-                return kit;
+                return new GenericHollowObject(consumer.getStateEngine(), primaryType, ordinal);
             }
         }
         return null;
@@ -259,8 +262,7 @@ public class HollowReader<T> implements ReferencedObject {
             open();
         }
         if (primaryKeyIndex != null && ordinal >= 0) {
-            GenericHollowObject kit = new GenericHollowObject(consumer.getStateEngine(), primaryType, ordinal);
-            return kit;
+            return new GenericHollowObject(consumer.getStateEngine(), primaryType, ordinal);
         }
         return null;
     }

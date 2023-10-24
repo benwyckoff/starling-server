@@ -16,12 +16,12 @@ public class OdysseyGcsHollowReaderFactory implements HollowReaderFactory {
     }
 
     @Override
-    public HollowReader<? extends Object> load(Path p) {
+    public HollowReader<?> load(Path p) {
         return HollowReader.load(odysseyGcsStorage.absolutePath(p), hollowStorageFactory);
     }
 
     @Override
     public String getName() {
-        return odysseyGcsStorage.absolutePath(Path.of("/")).toString();
+        return odysseyGcsStorage.getPathPrefix().toString();
     }
 }

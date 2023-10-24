@@ -23,7 +23,13 @@ public class OdysseyGcsStorage {
         pathPrefix = Paths.get("/gs", bucketName);
     }
 
+    public String getBucketName() {
+        return bucketName;
+    }
 
+    public Path getPathPrefix() {
+        return pathPrefix;
+    }
 
     // move
     public static Path relativePath(Path prefix, Path src) {
@@ -90,10 +96,8 @@ public class OdysseyGcsStorage {
         // recursive/follow-folders by default
 
         Page<Blob> blobs = GCS_STORAGE.list(bucketName, Storage.BlobListOption.prefix(relativePath(dir).toString()));
-        Iterator<Blob> blobIterator = blobs.iterateAll().iterator();
-        while (blobIterator.hasNext()) {
-            Blob blob = blobIterator.next();
-            if(!consumer.test(blob)) {
+        for (Blob blob : blobs.iterateAll()) {
+            if (!consumer.test(blob)) {
                 break;
             }
         }
@@ -103,10 +107,8 @@ public class OdysseyGcsStorage {
 
         Page<Blob> blobs = GCS_STORAGE.list(bucketName, Storage.BlobListOption.prefix(relativePath(dir).toString() + "/"),
                 Storage.BlobListOption.currentDirectory());
-        Iterator<Blob> blobIterator = blobs.iterateAll().iterator();
-        while (blobIterator.hasNext()) {
-            Blob blob = blobIterator.next();
-            if(!consumer.test(blob)) {
+        for (Blob blob : blobs.iterateAll()) {
+            if (!consumer.test(blob)) {
                 break;
             }
         }
