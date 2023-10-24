@@ -4,7 +4,7 @@
 
     <groupId>com.dragontreesoftware</groupId>
     <artifactId>starling-server</artifactId>
-    <version>1.0.7</version>
+    <version>1.0.8-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>starling-server</name>
     <description>
@@ -211,6 +211,6 @@
         <connection>scm:git:https://github.com/benwyckoff/starling-server.git</connection>
         <developerConnection>scm:git:https://github.com/benwyckoff/starling-server.git</developerConnection>
         <url>https://github.com/benwyckoff/starling-server</url>
-        <tag>starling-server-1.0.7</tag>
+        <tag>starling-server-1.0.0</tag>
     </scm>
 </project>
