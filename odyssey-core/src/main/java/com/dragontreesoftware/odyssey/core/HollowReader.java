@@ -55,10 +55,38 @@ public class HollowReader<T> implements ReferencedObject {
                 case "Float" -> new HollowReader<Float>(untyped).withConverter(Float::parseFloat);
                 case "Double" -> new HollowReader<Double>(untyped).withConverter(Double::parseDouble);
                 case "Boolean" -> new HollowReader<Boolean>(untyped).withConverter(Boolean::valueOf);
-                default -> null;
+                default -> new HollowReader<List<Object>>(untyped).withConverter(HollowReader.convertCompound(keyType));
             };
         }
         return null;
+    }
+
+    private static Function<String, List<Object>> convertCompound(String v) {
+        List<Function<String,Object>> converters = new ArrayList<>();
+
+        List<String> types = HollowKeyType.parse(v);
+
+        for(String type : types) {
+            Function<String, Object> converter = switch (type) {
+                case "String" -> val -> val;
+                case "Integer" -> Integer::parseInt;
+                case "Long" -> Long::parseLong;
+                case "Float" -> Float::parseFloat;
+                case "Double" -> Double::parseDouble;
+                case "Boolean" -> Boolean::valueOf;
+                default -> val -> val;
+            };
+            converters.add(converter);
+        }
+
+        return value -> {
+            List<Object> resultList = new LinkedList<>();
+            List<String> parts = HollowKeyType.parse(value);
+            for(int i = 0; i < parts.size(); i++) {
+                resultList.add(converters.get(i).apply(parts.get(i)));
+            }
+            return resultList;
+        };
     }
 
     public Path getHollowPath() {
@@ -170,29 +198,35 @@ public class HollowReader<T> implements ReferencedObject {
         this.keyType = keyType;
     }
 
-    public Class getRecognizedHollowPrimaryKeyType() {
+
+
+    public void getRecognizedHollowPrimaryKeyType() {
         touch();
         if(isClosed()) {
             open();
         }
         if(primaryKey != null) {
-            HollowObjectSchema.FieldType fieldType = primaryKey.getFieldType(consumer.getStateEngine(), primaryKey.getFieldPaths().length-1);
+            HollowKeyType.Builder builder = new HollowKeyType.Builder();
 
-            Class type = switch(fieldType) {
-                case REFERENCE,BYTES -> null;
-                case INT -> Integer.class;
-                case LONG -> Long.class;
-                case BOOLEAN -> Boolean.class;
-                case FLOAT -> Float.class;
-                case DOUBLE -> Double.class;
-                case STRING -> String.class;
-            };
-            if(type != null) {
-                this.keyType = type.getSimpleName();
+            for(int i = 0; i < primaryKey.getFieldPaths().length; i++) {
+
+                HollowObjectSchema.FieldType fieldType = primaryKey.getFieldType(consumer.getStateEngine(), i);
+
+                Class type = switch (fieldType) {
+                    case REFERENCE, BYTES -> null;
+                    case INT -> Integer.class;
+                    case LONG -> Long.class;
+                    case BOOLEAN -> Boolean.class;
+                    case FLOAT -> Float.class;
+                    case DOUBLE -> Double.class;
+                    case STRING -> String.class;
+                };
+                if(type != null) {
+                    builder.with(type.getSimpleName());
+                }
             }
-            return type;
+            this.keyType = builder.build().getName();
         }
-        return null;
     }
 
     public List<String> getPrimaryKeys() {
@@ -213,14 +247,13 @@ public class HollowReader<T> implements ReferencedObject {
                 Integer count = typedOrdinals.get(primaryType);
                 if (count != null) {
                     BitSet populatedOrdinals = consumer.getStateEngine().getTypeState(primaryType).getPopulatedOrdinals();
-                    StringBuilder b = new StringBuilder();
                     populatedOrdinals.stream().skip(from).limit(numKeys).forEach(pi -> {
                         Object[] key = primaryKeyIndex.getRecordKey(pi);
-                        b.setLength(0);
+                        HollowKeyType.Builder b = new HollowKeyType.Builder();
                         for (Object k : key) {
-                            b.append(k.toString());
+                            b.with(k.toString());
                         }
-                        keys.add(b.toString());
+                        keys.add(b.build().getName());
                     });
                 }
             }
@@ -242,7 +275,12 @@ public class HollowReader<T> implements ReferencedObject {
             open();
         }
         if (primaryKeyIndex != null) {
-            int ordinal = primaryKeyIndex.getMatchingOrdinal(id);
+            int ordinal = -1;
+            if(id instanceof List) {
+                ordinal = primaryKeyIndex.getMatchingOrdinal(((List)id).toArray(new Object[0]));
+            } else {
+                ordinal = primaryKeyIndex.getMatchingOrdinal(id);
+            }
             if(ordinal >= 0) {
                 return new GenericHollowObject(consumer.getStateEngine(), primaryType, ordinal);
             }
