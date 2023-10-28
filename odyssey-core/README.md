@@ -11,11 +11,12 @@ Odyssey serves as a "hollow explorer" as well as a possible load/mock server.
 Odyssey-core is the main module that provides functionality for loading and caching hollow data sets in memory. There is also support for an idle timer that will close idle data sets to reduce memory consumption. The framework is extensible and supports a number of factory types to allow for e.g. hollow data sets to be read or loaded from other locations.
 
 - call HollowReaders.setIdleListener to get notified when readers are closed. They are not automatically removed from the HollowReaders map so they can be re-opened, but an implementation may want to clean them up and provide alternate means of discovery. 
-
+- HollowReader(s) supports PrimaryKeys that correspond to a single field or a list of fields
+- HollowReader(s) exposes the Hollow metrics, schema, keys and values and supports key pagination and search based on primary key.
 
 ### Sample Data Sets
 
-The test code for odyssey-core includes DataSetGenerator and DataSetGenerator2 that produce local sample data sets for testing, and as reference code for generating your own local data sets.
+The test code for odyssey-core includes DataSetGenerator and DataSetGenerator2 and DataSetGenerator3 that produce local sample data sets for testing, and as reference code for generating your own local data sets. DataSetGenerator3 generates a Combo data set with a PrimaryKey composed of 2 String fields and an Integer field.
 
 ## odyssey-gcs
 
